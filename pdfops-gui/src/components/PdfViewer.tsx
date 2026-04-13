@@ -55,38 +55,9 @@ export function PdfViewer({
     return () => el.removeEventListener("wheel", handler);
   }, []);
 
-  // Load document whenever data changes
-  useEffect(() => {
-    if (!data) return;
-
-    let cancelled = false;
-    (async () => {
-      // Cancel any ongoing render
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
-
-      const loadingTask = pdfjsLib.getDocument({ data: data.slice(0) });
-      const newDoc = await loadingTask.promise;
-      if (cancelled) {
-        newDoc.destroy();
-        return;
-      }
-      docRef.current?.destroy();
-      docRef.current = newDoc;
-      onPageCount?.(newDoc.numPages);
-    })().catch(console.error);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [data]);
-
-  // Render the requested page whenever page/scale changes
-  useEffect(() => {
-    const doc = docRef.current;
-    if (!doc || !canvasRef.current) return;
-    if (page < 1 || page > doc.numPages) return;
+  const renderPage = (doc: PDFDocumentProxy, pageNum: number, pageScale: number) => {
+    if (!canvasRef.current) return;
+    if (pageNum < 1 || pageNum > doc.numPages) return;
 
     let cancelled = false;
     (async () => {
@@ -94,13 +65,11 @@ export function PdfViewer({
         renderTaskRef.current.cancel();
       }
 
-      const pdfPage = await doc.getPage(page);
+      const pdfPage = await doc.getPage(pageNum);
       if (cancelled) return;
 
-      // Multiply by devicePixelRatio so the canvas has physical pixels,
-      // then shrink it back with CSS — eliminates blur on HiDPI displays.
       const dpr = window.devicePixelRatio || 1;
-      const viewport = pdfPage.getViewport({ scale: scale * dpr });
+      const viewport = pdfPage.getViewport({ scale: pageScale * dpr });
       const canvas = canvasRef.current!;
       const ctx = canvas.getContext("2d")!;
 
@@ -114,17 +83,49 @@ export function PdfViewer({
       try {
         await task.promise;
       } catch (e: unknown) {
-        // RenderingCancelled is expected on rapid page switches
         if ((e as { name?: string }).name !== "RenderingCancelledException") {
           console.error("Render error:", e);
         }
       }
     })();
 
+    return () => { cancelled = true; };
+  };
+
+  // Load document whenever data changes, then immediately render page 1
+  useEffect(() => {
+    if (!data) return;
+
+    let cancelled = false;
+    (async () => {
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+
+      const loadingTask = pdfjsLib.getDocument({ data: data.slice(0) });
+      const newDoc = await loadingTask.promise;
+      if (cancelled) {
+        newDoc.destroy();
+        return;
+      }
+      docRef.current?.destroy();
+      docRef.current = newDoc;
+      onPageCount?.(newDoc.numPages);
+      // Render immediately — don't wait for the render effect to re-run
+      renderPage(newDoc, page, scale);
+    })().catch(console.error);
+
     return () => {
       cancelled = true;
     };
-  }, [data, page, scale]);
+  }, [data]);
+
+  // Re-render when page or scale changes (document is already loaded)
+  useEffect(() => {
+    const doc = docRef.current;
+    if (!doc) return;
+    return renderPage(doc, page, scale);
+  }, [page, scale]);
 
   // ── Annotation drawing state ───────────────────────────────────────────────
   const [hlDraft, setHlDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -133,6 +134,17 @@ export function PdfViewer({
   const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null);
   const [textInput, setTextInput] = useState("");
   const svgRef = useRef<SVGSVGElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
+  const committingRef = useRef(false);
+
+  // Imperatively focus the text input whenever it appears
+  useEffect(() => {
+    if (textPos) {
+      committingRef.current = false;
+      // rAF ensures the element is in the DOM before focusing
+      requestAnimationFrame(() => textInputRef.current?.focus());
+    }
+  }, [textPos]);
 
   const getRatio = (e: React.MouseEvent<SVGSVGElement>): [number, number] => {
     const svg = svgRef.current!;
@@ -188,6 +200,8 @@ export function PdfViewer({
   };
 
   const commitText = () => {
+    if (committingRef.current) return; // prevent double-fire from blur-after-enter
+    committingRef.current = true;
     if (textPos && textInput.trim()) {
       onAnnotationAdd?.({ id: newId(), type: "text", page, x: textPos.x, y: textPos.y, content: textInput.trim(), color: "#2c3e50" } satisfies TextAnnotation);
     }
@@ -322,12 +336,12 @@ export function PdfViewer({
           {/* Floating text input for text annotations */}
           {textPos && (
             <input
-              autoFocus
+              ref={textInputRef}
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") commitText();
-                if (e.key === "Escape") { setTextPos(null); setTextInput(""); }
+                if (e.key === "Enter") { e.preventDefault(); commitText(); }
+                if (e.key === "Escape") { committingRef.current = true; setTextPos(null); setTextInput(""); }
               }}
               onBlur={commitText}
               style={{
