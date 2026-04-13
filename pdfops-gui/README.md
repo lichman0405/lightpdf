@@ -1,7 +1,16 @@
-# Tauri + React + Typescript
+# pdfops-gui
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This is the desktop application component of **LightPDF**.
 
-## Recommended IDE Setup
+For full documentation, see:
+- [Repository README](../README.md)
+- [Documentation site](https://lichman0405.github.io/lightpdf)
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Development
+
+```bash
+npm install
+npm run tauri dev   # dev mode with HMR
+npm run tauri build # production build
+```
+

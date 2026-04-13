@@ -6,6 +6,10 @@ target/
 node_modules/
 dist/
 
+# VitePress build output
+docs/.vitepress/dist
+docs/.vitepress/cache
+
 # Tauri
 pdfops-gui/src-tauri/target/
 pdfops-gui/dist/
