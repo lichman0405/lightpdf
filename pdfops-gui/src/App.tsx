@@ -101,6 +101,7 @@ export default function App() {
         page={page}
         scale={scale}
         onPageCount={setPageCount}
+        onScaleChange={setScale}
       />
 
       {/* Status bar */}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
 // PDF.js is loaded via a CDN worker; we need to tell it where the worker is.
@@ -16,13 +16,34 @@ export interface PdfViewerProps {
   /** Zoom level: 0.25 – 4.0, default 1.0 */
   scale: number;
   onPageCount?: (n: number) => void;
+  onScaleChange?: (s: number) => void;
 }
 
-export function PdfViewer({ data, page, scale, onPageCount }: PdfViewerProps) {
+export function PdfViewer({ data, page, scale, onPageCount, onScaleChange }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const renderTaskRef = useRef<ReturnType<PDFPageProxy["render"]> | null>(null);
+  // keep scale and callback in refs so the wheel handler always sees the latest value
+  const scaleRef = useRef(scale);
+  const onScaleChangeRef = useRef(onScaleChange);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => { onScaleChangeRef.current = onScaleChange; }, [onScaleChange]);
+
+  // Ctrl+wheel zoom — must use non-passive listener to call preventDefault
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const step = e.deltaY < 0 ? 0.1 : -0.1;
+      const next = Math.min(4, Math.max(0.25, Math.round((scaleRef.current + step) * 100) / 100));
+      onScaleChangeRef.current?.(next);
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
 
   // Load document whenever data changes
   useEffect(() => {
