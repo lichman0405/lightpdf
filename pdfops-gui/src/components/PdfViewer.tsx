@@ -66,12 +66,17 @@ export function PdfViewer({ data, page, scale, onPageCount }: PdfViewerProps) {
       const pdfPage = await doc.getPage(page);
       if (cancelled) return;
 
-      const viewport = pdfPage.getViewport({ scale });
+      // Multiply by devicePixelRatio so the canvas has physical pixels,
+      // then shrink it back with CSS — eliminates blur on HiDPI displays.
+      const dpr = window.devicePixelRatio || 1;
+      const viewport = pdfPage.getViewport({ scale: scale * dpr });
       const canvas = canvasRef.current!;
       const ctx = canvas.getContext("2d")!;
 
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+      canvas.style.width  = `${viewport.width  / dpr}px`;
+      canvas.style.height = `${viewport.height / dpr}px`;
 
       const task = pdfPage.render({ canvasContext: ctx, viewport });
       renderTaskRef.current = task;
