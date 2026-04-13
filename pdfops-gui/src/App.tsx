@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PdfViewer } from "./components/PdfViewer";
 import { Toolbar } from "./components/Toolbar";
+import type { Annotation, AnnotationMode } from "./types/annotations";
 import "./App.css";
 
 interface CompressResult {
@@ -18,6 +19,8 @@ export default function App() {
   const [pageCount, setPageCount] = useState(0);
   const [scale, setScale] = useState(1.0);
   const [statusMsg, setStatusMsg] = useState<string>("");
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [annotationMode, setAnnotationMode] = useState<AnnotationMode>("select");
 
   const loadPdf = useCallback(async (filePath: string) => {
     try {
@@ -39,13 +42,16 @@ export default function App() {
   const handleSave = useCallback(async () => {
     if (!pdfPath || !pdfData) return;
     try {
-      // For now just write the current bytes back (TODO: write modified PDF in later phases)
-      await invoke("compress_pdf", { inputPath: pdfPath, outputPath: pdfPath, level: 1 });
+      await invoke("save_pdf_with_annotations", {
+        inputPath: pdfPath,
+        outputPath: pdfPath,
+        annotations: annotations,
+      });
       setStatusMsg("Saved.");
     } catch (e) {
       setStatusMsg(`Save error: ${e}`);
     }
-  }, [pdfPath, pdfData]);
+  }, [pdfPath, pdfData, annotations]);
 
   const handleCompress = useCallback(async () => {
     if (!pdfPath) return;
@@ -89,11 +95,15 @@ export default function App() {
         page={page}
         pageCount={pageCount}
         scale={scale}
+        annotationMode={annotationMode}
         onOpen={handleOpen}
         onSave={handleSave}
         onPageChange={clampPage}
         onScaleChange={setScale}
         onCompress={handleCompress}
+        onAnnotationModeChange={setAnnotationMode}
+        onUndoAnnotation={() => setAnnotations((a) => a.slice(0, -1))}
+        canUndo={annotations.length > 0}
       />
 
       <PdfViewer
@@ -102,6 +112,9 @@ export default function App() {
         scale={scale}
         onPageCount={setPageCount}
         onScaleChange={setScale}
+        annotations={annotations}
+        annotationMode={annotationMode}
+        onAnnotationAdd={(a) => setAnnotations((prev) => [...prev, a])}
       />
 
       {/* Status bar */}

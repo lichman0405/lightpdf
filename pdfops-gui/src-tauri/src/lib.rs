@@ -12,6 +12,7 @@ pub fn run() {
             pdf_ops::read_pdf_bytes,
             pdf_ops::get_pdf_info,
             pdf_ops::compress_pdf,
+            pdf_ops::save_pdf_with_annotations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

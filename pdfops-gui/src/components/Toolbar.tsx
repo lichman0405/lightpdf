@@ -1,15 +1,20 @@
 import type { CSSProperties } from "react";
+import type { AnnotationMode } from "../types/annotations";
 
 export interface ToolbarProps {
   hasDoc: boolean;
   page: number;
   pageCount: number;
   scale: number;
+  annotationMode: AnnotationMode;
   onOpen: () => void;
   onSave: () => void;
   onPageChange: (p: number) => void;
   onScaleChange: (s: number) => void;
   onCompress: () => void;
+  onAnnotationModeChange: (m: AnnotationMode) => void;
+  onUndoAnnotation: () => void;
+  canUndo: boolean;
 }
 
 const SCALE_STEPS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
@@ -19,11 +24,15 @@ export function Toolbar({
   page,
   pageCount,
   scale,
+  annotationMode,
   onOpen,
   onSave,
   onPageChange,
   onScaleChange,
   onCompress,
+  onAnnotationModeChange,
+  onUndoAnnotation,
+  canUndo,
 }: ToolbarProps) {
   const btnStyle: CSSProperties = {
     padding: "4px 12px",
@@ -130,6 +139,42 @@ export function Toolbar({
           </option>
         ))}
       </select>
+
+      <span style={divider} />
+
+      {/* Annotation tools */}
+      {(["select", "highlight", "draw", "text"] as AnnotationMode[]).map((mode) => {
+        const labels: Record<AnnotationMode, string> = {
+          select: "↖ Select",
+          highlight: "🖊 Highlight",
+          draw: "✏ Draw",
+          text: "T Text",
+        };
+        const active = annotationMode === mode;
+        return (
+          <button
+            key={mode}
+            style={{
+              ...btnStyle,
+              background: active ? "#005fb8" : "#3a3a3a",
+              borderColor: active ? "#0078d4" : "#555",
+            }}
+            disabled={!hasDoc}
+            onClick={() => onAnnotationModeChange(mode)}
+          >
+            {labels[mode]}
+          </button>
+        );
+      })}
+
+      <button
+        style={{ ...btnStyle, opacity: canUndo ? 1 : 0.4 }}
+        disabled={!canUndo}
+        onClick={onUndoAnnotation}
+        title="Undo last annotation"
+      >
+        ↩ Undo
+      </button>
     </div>
   );
 }
