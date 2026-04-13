@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PdfViewer } from "./components/PdfViewer";
@@ -83,6 +83,23 @@ export default function App() {
   );
 
   const clampPage = (n: number) => setPage(Math.max(1, Math.min(n, pageCount)));
+
+  // Keyboard page navigation (PageUp/PageDown/ArrowLeft/ArrowRight)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't intercept when user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "PageDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setPage((p) => Math.min(p + 1, pageCount));
+      } else if (e.key === "PageUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        setPage((p) => Math.max(p - 1, 1));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [pageCount]);
 
   return (
     <div
