@@ -1,0 +1,22 @@
+[package]
+name = "pdfops-mcp"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "pdfops-mcp"
+path = "src/main.rs"
+
+[dependencies]
+pdfops-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+lopdf = "0.40"
+
+# MCP protocol server (stdio transport)
+rmcp = { version = "1", features = ["server", "transport-io", "macros", "schemars"] }
+schemars = "1"
+

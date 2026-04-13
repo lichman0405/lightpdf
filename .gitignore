@@ -1,0 +1,15 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+
+# Tauri
+pdfops-gui/src-tauri/target/
+pdfops-gui/dist/
+
+# OS
+.DS_Store
+Thumbs.db

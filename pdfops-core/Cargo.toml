@@ -1,0 +1,33 @@
+[package]
+name = "pdfops-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# PDF compression
+lopdf = "0.40"
+
+# Markdown parsing (for MCP markdown-to-PDF pipeline)
+# default-features=false skips the syntect/onig dependency (syntax highlighting
+# in HTML output), which we don't need — we only use the AST API.
+comrak = { version = "0.52", default-features = false }
+
+# PDF typesetting engine (for MCP markdown-to-PDF pipeline)
+# Enabled only when the `typst-engine` feature is active to keep default
+# compile times reasonable; activated by pdfops-mcp.
+typst = { version = "0.14", optional = true }
+typst-pdf = { version = "0.14", optional = true }
+typst-kit = { version = "0.14", optional = true }
+
+[features]
+default = []
+typst-engine = ["dep:typst", "dep:typst-pdf", "dep:typst-kit"]
+
+[dev-dependencies]
+tempfile = "3"
+
