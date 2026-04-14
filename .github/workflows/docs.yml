@@ -9,6 +9,12 @@ on:
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
+# Workflow-level permissions (required for Pages deployment on restricted repos)
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 # Allow one concurrent deployment
 concurrency:
   group: pages
