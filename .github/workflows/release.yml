@@ -86,6 +86,7 @@ jobs:
             | Linux | `.deb` or `.AppImage` |
 
             > **No Node.js or Rust required** — just download and run the installer.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
+          updatesExistingRelease: true
           args: ${{ matrix.args }}
