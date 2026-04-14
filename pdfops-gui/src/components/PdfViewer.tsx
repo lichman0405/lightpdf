@@ -78,7 +78,7 @@ export function PdfViewer({
       canvas.style.width  = `${viewport.width  / dpr}px`;
       canvas.style.height = `${viewport.height / dpr}px`;
 
-      const task = pdfPage.render({ canvasContext: ctx, viewport });
+      const task = pdfPage.render({ canvas: null, canvasContext: ctx, viewport });
       renderTaskRef.current = task;
       try {
         await task.promise;
